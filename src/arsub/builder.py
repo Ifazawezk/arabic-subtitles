@@ -62,6 +62,7 @@ class BuildOptions:
     pause: float = 0.7
     digits: str = "western"
     remove_diacritics: bool = False
+    drop_hallucinations: bool = True
 
 
 # A line should not end with one of these: they belong to the words after them.
@@ -87,6 +88,42 @@ def is_dangling(word: str) -> bool:
     if w in DANGLING:
         return True
     return len(w) > 2 and w[0] in "وف" and w[1:] in DANGLING
+
+# Phrases Whisper is known to invent on silence or music in Arabic audio,
+# usually copied from subtitle credits in its training data.
+HALLUCINATIONS = (
+    "ترجمة نانسي قنقر",
+    "نانسي قنقر",
+    "اشتركوا في القناة",
+    "اشترك في القناة",
+    "لا تنسوا الاشتراك في القناة",
+    "المترجم للقناة",
+    "Subtitles by the Amara.org community",
+    "amara.org",
+)
+
+
+def _norm_for_match(s: str) -> str:
+    s = T.strip_diacritics(T.strip_bidi_marks(s)).lower()
+    for a, b in (("أ", "ا"), ("إ", "ا"), ("آ", "ا"), ("ى", "ي"), ("ة", "ه")):
+        s = s.replace(a, b)
+    keep = [ch if ch.isalnum() or ch == "." else " " for ch in s]
+    return " ".join("".join(keep).split())
+
+
+_HALLUCINATIONS_NORM = tuple(_norm_for_match(h) for h in HALLUCINATIONS)
+
+
+def is_hallucination(text: str) -> bool:
+    """True when a cue is (almost) only a known made-up credit line."""
+    norm = _norm_for_match(text)
+    if not norm:
+        return False
+    for phrase in _HALLUCINATIONS_NORM:
+        if phrase in norm and len(phrase) >= 0.6 * len(norm):
+            return True
+    return False
+
 
 def clean_words(words: list[Word], opts: BuildOptions) -> list[Word]:
     """Normalize every word and glue stray punctuation onto the word before it."""
@@ -286,7 +323,10 @@ def build_cues(words: list[Word], opts: BuildOptions | None = None) -> list[Cue]
         lines = [line for line in lines if line]
         if not lines:
             continue
-        cues.append(Cue(start=round(g[0].start, 3), end=round(g[-1].end, 3), lines=lines, words=g))
+        cue = Cue(start=round(g[0].start, 3), end=round(g[-1].end, 3), lines=lines, words=g)
+        if opts.drop_hallucinations and is_hallucination(cue.text):
+            continue
+        cues.append(cue)
     return fix_timing(cues, opts)
 
 

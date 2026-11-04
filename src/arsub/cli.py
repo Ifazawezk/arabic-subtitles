@@ -65,6 +65,7 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("--digits", choices=DIGIT_STYLES, default="western", help="western 0-9, arabic-indic, or keep")
     s.add_argument("--strip-diacritics", action="store_true", help="remove harakat")
     s.add_argument("--rtl-marks", choices=RTL_MARK_MODES, default="embed", help="invisible marks in .srt/.vtt for players that guess LTR")
+    s.add_argument("--keep-hallucinations", action="store_true", help="keep cues such as 'ترجمة نانسي قنقر' that Whisper invents on silence")
 
     b = p.add_argument_group("burn-in")
     b.add_argument("--font", default="Noto Sans Arabic", help="font family (Noto Sans Arabic ships with arsub)")
@@ -187,6 +188,7 @@ def main(argv: list[str] | None = None) -> int:
         max_duration=args.max_duration,
         digits=args.digits,
         remove_diacritics=args.strip_diacritics,
+        drop_hallucinations=not args.keep_hallucinations,
     )
     style = F.AssStyle(font=args.font, font_size=args.font_size)
     bar = ProgressBar(enabled=not args.quiet)

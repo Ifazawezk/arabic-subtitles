@@ -51,6 +51,7 @@ def english_options(build: BuildOptions) -> BuildOptions:
         min_gap=build.min_gap,
         pause=build.pause,
         digits="western",
+        drop_hallucinations=build.drop_hallucinations,
     )
 
 

@@ -5,6 +5,7 @@ from arsub.builder import (
     build_cues,
     clean_words,
     cue_from_text,
+    is_hallucination,
     split_lines,
     stats,
 )
@@ -131,6 +132,17 @@ def test_options_digits_and_diacritics_apply():
     opts = BuildOptions(digits="arabic-indic", remove_diacritics=True)
     cues = build_cues(timed("وُلِدَ في عام 1990"), opts)
     assert cues[0].text == "ولد في عام ١٩٩٠"
+
+
+def test_known_hallucinations_dropped():
+    assert is_hallucination("ترجمة نانسي قنقر")
+    assert is_hallucination("اشتركوا في القناة!")
+    assert is_hallucination("المترجم للقناة")
+    assert not is_hallucination("قالت نانسي إنها ستعود غدا إلى المدرسة مع أخيها الصغير")
+    words = timed("مرحبا بكم") + timed("ترجمة نانسي قنقر", start=10)
+    assert [c.text for c in build_cues(words)] == ["مرحبا بكم"]
+    kept = build_cues(words, BuildOptions(drop_hallucinations=False))
+    assert len(kept) == 2
 
 
 def test_latin_punctuation_fixed_in_cues():
