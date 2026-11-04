@@ -138,6 +138,8 @@ def test_known_hallucinations_dropped():
     assert is_hallucination("ترجمة نانسي قنقر")
     assert is_hallucination("اشتركوا في القناة!")
     assert is_hallucination("المترجم للقناة")
+    assert is_hallucination("ترجمة نانسي قنقر ترجمة نانسي قنقر")  # real large-v3-turbo output on silence
+    assert not is_hallucination("مرحبا بكم في درس اليوم عن تاريخ الخط العربي ترجمة نانسي قنقر")
     assert not is_hallucination("قالت نانسي إنها ستعود غدا إلى المدرسة مع أخيها الصغير")
     words = timed("مرحبا بكم") + timed("ترجمة نانسي قنقر", start=10)
     assert [c.text for c in build_cues(words)] == ["مرحبا بكم"]

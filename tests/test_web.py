@@ -60,6 +60,21 @@ def test_summary_mentions_speed():
     assert "1 cues" in text and "small on cuda" in text and "10.0x realtime" in text
 
 
+def test_video_preview_has_a_native_track():
+    html = web.video_preview("C:/tmp/فيديو 1.mp4", "C:/tmp/subs.ar.vtt")
+    assert "<track" in html and "default" in html
+    assert 'src="/gradio_api/file=C:/tmp/%D9' in html  # non-ASCII path stays a valid URL
+    assert "subs.ar.vtt" in html
+
+
+def test_video_preview_escapes_quotes():
+    assert '"><script' not in web.video_preview('a"><script>.mp4', None)
+
+
+def test_no_preview_for_audio():
+    assert web.video_preview(None, None) == ""
+
+
 def test_export_files(tmp_path):
     files = web.export_files([Cue(0, 1, ["نص"])], "clip", tmp_path / "out", {"width": 640, "height": 360})
     assert [p.rsplit(".", 1)[-1] for p in files] == ["srt", "vtt", "ass"]

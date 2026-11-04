@@ -11,7 +11,10 @@ from __future__ import annotations
 import argparse
 import os
 import tempfile
+from functools import lru_cache
+from html import escape
 from pathlib import Path
+from urllib.parse import quote
 
 from . import formats as F
 from .builder import BuildOptions, Cue, cue_from_text, stats
@@ -27,7 +30,8 @@ os.environ.setdefault("GRADIO_ANALYTICS_ENABLED", "False")
 COLUMNS = ["#", "Start", "End", "Text", "CPS"]
 
 CSS = """
-#arsub-table td:nth-child(4), #arsub-table td:nth-child(4) * { direction: rtl; text-align: right;
+#arsub-table [role="gridcell"][data-col="3"], #arsub-table [role="gridcell"][data-col="3"] * {
+  direction: rtl; text-align: right;
   font-family: 'Noto Sans Arabic', 'Segoe UI', Tahoma, sans-serif; font-size: 1.05rem; }
 footer { display: none !important; }
 """
@@ -108,11 +112,37 @@ def export_files(cues: list[Cue], stem: str, out_dir: Path, opts: dict) -> list[
     ]
 
 
+def file_url(path: str | Path) -> str:
+    return "/gradio_api/file=" + quote(Path(path).as_posix(), safe="/:")
+
+
+def video_preview(path: str | Path | None, vtt: str | Path | None) -> str:
+    """A plain <video> with a native subtitle track.
+
+    Browsers render Arabic WebVTT correctly on their own. gr.Video is not used
+    here because in Gradio 6 it does not show a video that carries subtitles.
+    """
+    if not path:
+        return ""
+    track = ""
+    if vtt:
+        track = f'<track kind="subtitles" label="Arabic" srclang="ar" src="{escape(file_url(vtt))}" default>'
+    return (
+        f'<video controls preload="metadata" src="{escape(file_url(path))}" '
+        f'style="width:100%;max-height:360px;border-radius:10px;background:#000">{track}</video>'
+    )
+
+
+@lru_cache(maxsize=1)
+def work_dir() -> Path:
+    return Path(tempfile.mkdtemp(prefix="arsub-web-"))
+
+
 def build_app():
     import gradio as gr
 
     has_gpu = cuda_device_count() > 0
-    work_dir = Path(tempfile.mkdtemp(prefix="arsub-web-"))
+    output_dir = work_dir()
 
     def make_subtitles(file, model, device, dialect, digits, strip, max_chars, translate, progress=gr.Progress()):
         if not file:
@@ -124,7 +154,7 @@ def build_app():
         try:
             result = run(
                 path,
-                out_dir=work_dir,
+                out_dir=output_dir,
                 formats=("vtt",),
                 transcribe_opts=topts,
                 build_opts=bopts,
@@ -138,7 +168,7 @@ def build_app():
         files = [str(p) for k, p in result.files.items() if k.startswith("en.")]
         return (
             cues_to_rows(result.cues),
-            gr.update(value=(preview, vtt) if preview else None, visible=bool(preview)),
+            video_preview(preview, vtt),
             summary(result.cues, bopts, result.meta),
             str(path),
             result.meta,
@@ -156,10 +186,10 @@ def build_app():
             raise gr.Error(f"Could not read a time in the table: {exc}") from exc
         stem = Path(source).stem if source else "subtitles"
         size = video_size(Path(source)) if source else (1920, 1080)
-        files = export_files(cues, stem, work_dir, {"width": size[0], "height": size[1]})
+        files = export_files(cues, stem, output_dir, {"width": size[0], "height": size[1]})
         preview = gr.update()
         if source and not is_audio_only(source):
-            preview = gr.update(value=(source, files[1]))
+            preview = video_preview(source, files[1])
         return cues_to_rows(cues), preview, summary(cues, opts, meta), files
 
     def burn_now(rows, source, max_chars, digits, strip, meta, progress=gr.Progress()):
@@ -169,7 +199,7 @@ def build_app():
         cues = rows_to_cues(rows, opts)
         width, height = video_size(Path(source))
         ass = F.to_ass(cues, width=width, height=height)
-        out = work_dir / f"{Path(source).stem}.subbed.mp4"
+        out = output_dir / f"{Path(source).stem}.subbed.mp4"
         try:
             burn_video(source, ass, out, size=(width, height), progress=lambda f, m: progress(f, desc=m))
         except Exception as exc:  # noqa: BLE001
@@ -193,7 +223,7 @@ def build_app():
                     max_chars = gr.Slider(24, 60, value=42, step=1, label="Characters per line")
                     translate = gr.Checkbox(label="Also make English subtitles")
             with gr.Column(scale=3):
-                player = gr.Video(label="Preview", interactive=False, visible=False)
+                player = gr.HTML(label="Preview")
                 info = gr.Markdown()
         table = gr.Dataframe(
             headers=COLUMNS,
@@ -228,7 +258,7 @@ def launch_options(gr) -> dict:
         font=["Segoe UI", "system-ui", "sans-serif"],
         font_mono=["Consolas", "monospace"],
     )
-    return {"css": CSS, "theme": theme}
+    return {"css": CSS, "theme": theme, "allowed_paths": [str(work_dir())]}
 
 
 def main(argv: list[str] | None = None) -> int:

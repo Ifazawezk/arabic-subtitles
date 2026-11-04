@@ -168,7 +168,9 @@ def build_command(
     if video_codec == "libx264":
         cmd += ["-crf", str(crf), "-preset", preset]
     elif video_codec.endswith("_nvenc"):
-        cmd += ["-rc", "vbr", "-cq", str(crf), "-b:v", "0", "-preset", "p5"]  # -b:v 0 lets -cq decide the size
+        # NVENC's cq scale is not x264's crf: on a real film cq 26 matched the size of crf 20,
+        # while cq 20 came out more than twice as large.
+        cmd += ["-rc", "vbr", "-cq", str(crf + 6), "-b:v", "0", "-preset", "p5"]
     cmd += ["-pix_fmt", "yuv420p", "-c:a", audio_codec]
     if audio_codec == "aac":
         cmd += ["-b:a", "160k"]

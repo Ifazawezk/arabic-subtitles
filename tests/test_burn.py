@@ -42,7 +42,7 @@ def test_command_for_audio_only_draws_a_background():
 
 def test_command_nvenc():
     cmd = B.build_command("ffmpeg", "a.mp4", "b.mkv", video_codec="h264_nvenc", crf=23)
-    assert cmd[cmd.index("-cq") + 1] == "23"
+    assert cmd[cmd.index("-cq") + 1] == "29"  # crf + 6, see the comment in build_command
     assert cmd[cmd.index("-b:v") + 1] == "0"  # without this, -cq does not control the file size
     assert "-crf" not in cmd and "+faststart" not in cmd
 

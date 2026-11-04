@@ -111,18 +111,22 @@ def _norm_for_match(s: str) -> str:
     return " ".join("".join(keep).split())
 
 
-_HALLUCINATIONS_NORM = tuple(_norm_for_match(h) for h in HALLUCINATIONS)
+_HALLUCINATIONS_NORM = tuple(sorted((_norm_for_match(h) for h in HALLUCINATIONS), key=len, reverse=True))
 
 
 def is_hallucination(text: str) -> bool:
-    """True when a cue is (almost) only a known made-up credit line."""
+    """True when a cue is (almost) only known made-up credit lines.
+
+    Known phrases are removed and whatever is left decides. Whisper often repeats
+    a credit line, and the repeats get merged into a single cue, so a check for
+    one phrase alone would let "ترجمة نانسي قنقر ترجمة نانسي قنقر" through.
+    """
     norm = _norm_for_match(text)
-    if not norm:
-        return False
+    rest = norm
     for phrase in _HALLUCINATIONS_NORM:
-        if phrase in norm and len(phrase) >= 0.6 * len(norm):
-            return True
-    return False
+        rest = rest.replace(phrase, " ")
+    rest = " ".join(rest.split())
+    return rest != norm and len(rest) <= 0.4 * len(norm)
 
 
 def clean_words(words: list[Word], opts: BuildOptions) -> list[Word]:

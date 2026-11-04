@@ -49,7 +49,7 @@ def build_parser() -> argparse.ArgumentParser:
     g.add_argument("--device", choices=("auto", "cuda", "cpu"), default="auto")
     g.add_argument("--compute-type", default="auto", help="auto = float16 on GPU, int8 on CPU")
     g.add_argument("--language", default="ar", help="spoken language code, or 'auto' (default: ar)")
-    g.add_argument("--dialect", choices=DIALECTS, default="none", help="nudge spelling toward a dialect with a primed prompt")
+    g.add_argument("--dialect", choices=DIALECTS, default="none", help="prime the model with a sample sentence; adds punctuation and formal spelling, slower")
     g.add_argument("--prompt", help="custom initial prompt (names, terms, style)")
     g.add_argument("--hotwords", help="words to favour, e.g. names that are often misheard")
     g.add_argument("--beam-size", type=int, default=5)

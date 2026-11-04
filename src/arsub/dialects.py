@@ -1,13 +1,15 @@
-"""Dialect presets.
+"""Prompt presets.
 
 Whisper has no switch for Arabic dialects; it only knows the language "ar".
-What does work is the initial prompt: the decoder continues in the style of
-the text it is primed with. A short prompt written in a dialect nudges the
-spelling toward that dialect ("النهارده" instead of "اليوم"), and a prompt
-with punctuation makes the model more likely to punctuate.
+These presets prime the decoder with a short sentence through its initial
+prompt.
 
-This is a bias, not a guarantee. The ``msa`` preset is the safe default for
-news, lectures and formal speech.
+What they really do, measured on 300 clips and a real Egyptian recording: they
+add punctuation and formal spelling ("لأن" instead of "لان", "طبعاً" instead of
+"طبعا"). They do not move the text toward a dialect. Dialect words came through
+just as well without a prompt, the choice of preset made almost no difference,
+and overall WER did not change in a meaningful way. They also cost about a third
+of the speed, so no preset is on by default.
 """
 
 from __future__ import annotations
