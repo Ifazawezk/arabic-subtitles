@@ -23,9 +23,16 @@ classifiers = [
     "Topic :: Multimedia :: Sound/Audio :: Speech",
 ]
 dependencies = [
+    "faster-whisper>=1.1",
+    "av>=11,<19",
+    "imageio-ffmpeg>=0.5",
 ]
 
 [project.optional-dependencies]
+gpu = [
+    "nvidia-cublas-cu12",
+    "nvidia-cudnn-cu12>=9,<10",
+]
 dev = ["pytest>=8"]
 
 [project.urls]
