@@ -102,6 +102,12 @@ def test_models_are_cached():
     assert len(FakeModel.instances) == 1
 
 
+def test_only_one_model_stays_loaded():
+    tr.transcribe("a.wav", tr.TranscribeOptions(device="cpu", model="tiny"))
+    tr.transcribe("a.wav", tr.TranscribeOptions(device="cpu", model="small"))
+    assert [key[0] for key in tr._MODEL_CACHE] == ["small"]
+
+
 def test_vad_keeps_short_pauses():
     # 500 ms lost words on narration over music, see the comment in TranscribeOptions.
     assert tr.TranscribeOptions().min_silence_ms == 2000

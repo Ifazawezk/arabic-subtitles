@@ -9,6 +9,7 @@ same file is transcribed again on the CPU with a smaller model.
 
 from __future__ import annotations
 
+import gc
 import logging
 import os
 import sys
@@ -156,6 +157,10 @@ def load_model(name: str, device: str, compute_type: str, download_root: str | N
     """Load (and cache) a ``faster_whisper.WhisperModel``."""
     key = (name, device, compute_type, download_root)
     if key not in _MODEL_CACHE:
+        # One model at a time. Keeping the main model loaded while the translation
+        # model loads can run a small GPU out of memory and force a CPU fallback.
+        _MODEL_CACHE.clear()
+        gc.collect()
         register_cuda_libraries()
         from faster_whisper import WhisperModel
 
