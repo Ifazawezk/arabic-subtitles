@@ -34,6 +34,7 @@ gpu = [
     "nvidia-cudnn-cu12>=9,<10",
 ]
 web = ["gradio>=6"]
+eval = ["jiwer>=3", "pyarrow>=15"]
 dev = ["pytest>=8"]
 
 [project.scripts]
