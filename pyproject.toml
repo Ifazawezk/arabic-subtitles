@@ -35,6 +35,9 @@ gpu = [
 ]
 dev = ["pytest>=8"]
 
+[project.scripts]
+arsub = "arsub.cli:main"
+
 [project.urls]
 Homepage = "https://github.com/Ifazawezk/arabic-subtitles"
 Issues = "https://github.com/Ifazawezk/arabic-subtitles/issues"
