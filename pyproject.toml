@@ -33,10 +33,12 @@ gpu = [
     "nvidia-cublas-cu12",
     "nvidia-cudnn-cu12>=9,<10",
 ]
+web = ["gradio>=6"]
 dev = ["pytest>=8"]
 
 [project.scripts]
 arsub = "arsub.cli:main"
+arsub-web = "arsub.web:main"
 
 [project.urls]
 Homepage = "https://github.com/Ifazawezk/arabic-subtitles"
