@@ -83,6 +83,37 @@ def test_rebuild_from_json_skips_the_model(media, calls, monkeypatch):
     assert media.with_name("talk.ar.srt").exists()
 
 
+def test_translate_writes_english_track(media, calls):
+    assert cli.main([str(media), "--translate", "-f", "srt", "-q"]) == 0
+    assert [c.task for c in calls] == ["transcribe", "translate"]
+    english = media.with_name("talk.en.srt").read_text(encoding="utf-8-sig")
+    assert "Hello everyone." in english
+    assert "\u202b" not in english
+
+
+def test_translation_avoids_turbo(media, calls):
+    assert cli.main([str(media), "--translate", "-m", "large-v3-turbo", "-q"]) == 0
+    assert [c.model for c in calls] == ["large-v3-turbo", "medium"]
+    assert "Hello everyone." in media.with_name("talk.en.srt").read_text(encoding="utf-8-sig")
+
+
+def test_translation_keeps_a_good_model(media, calls):
+    assert cli.main([str(media), "--translate", "-m", "large-v3", "-q"]) == 0
+    assert [c.model for c in calls] == ["large-v3", "large-v3"]
+
+
+def test_warns_when_translation_stays_arabic(media, calls, caplog):
+    args = [str(media), "--translate", "-m", "large-v3-turbo", "--translate-model", "turbo-custom"]
+    assert cli.main(args) == 0
+    assert "returned Arabic" in caplog.text
+
+
+def test_translate_drops_the_dialect_prompt(media, calls):
+    assert cli.main([str(media), "--translate", "--dialect", "egyptian", "-q"]) == 0
+    assert calls[0].dialect == "egyptian"
+    assert calls[1].dialect is None
+
+
 def burn_recorder(monkeypatch):
     burned = {}
 
@@ -101,6 +132,12 @@ def test_burn_passes_rtl_ass(media, calls, monkeypatch):
     assert burned["video_codec"] == "h264_nvenc"
     assert ",-1\n" in burned["ass"]  # Encoding -1
     assert "\u202b" in burned["ass"]
+
+
+def test_burn_both_tracks(media, calls, monkeypatch):
+    burned = burn_recorder(monkeypatch)
+    assert cli.main([str(media), "--translate", "--burn", "--burn-track", "both", "-q"]) == 0
+    assert ",Top,,0,0,0,,Hello" in burned["ass"]
 
 
 def test_burn_existing_subtitles_skips_the_model(media, calls, monkeypatch, tmp_path):
@@ -146,6 +183,17 @@ def test_no_input(capsys):
 def test_bad_format(media, calls):
     with pytest.raises(SystemExit):
         cli.main([str(media), "-f", "docx"])
+
+
+def test_burn_track_needs_translate(media, calls, capsys):
+    assert cli.main([str(media), "--burn", "--burn-track", "en"]) == 2
+    assert "--translate" in capsys.readouterr().err
+
+
+def test_translate_cannot_use_subs(media, calls, tmp_path, capsys):
+    subs = tmp_path / "x.srt"
+    subs.write_text("", encoding="utf-8")
+    assert cli.main([str(media), "--translate", "--subs", str(subs)]) == 2
 
 
 def test_failure_is_reported_not_raised(media, monkeypatch, capsys):

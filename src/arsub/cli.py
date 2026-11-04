@@ -26,6 +26,7 @@ def build_parser() -> argparse.ArgumentParser:
         epilog="examples:\n"
         "  arsub talk.mp4                      write talk.ar.srt\n"
         "  arsub talk.mp4 -f srt,vtt,ass --burn\n"
+        "  arsub talk.mp4 --translate --burn --burn-track both\n"
         "  arsub talk.ar.json --max-chars 36   rebuild subtitles without running the model\n"
         "  arsub talk.mp4 --subs edited.srt --burn",
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -35,6 +36,9 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("-o", "--output-dir", help="where to write files (default: next to the input)")
     p.add_argument("--burn", action="store_true", help="also write a copy of the video with the subtitles burned in")
     p.add_argument("--subs", help="use this .srt/.vtt/.json instead of transcribing (for burning an edited file)")
+    p.add_argument("--translate", action="store_true", help="also write English subtitles (Whisper translate task)")
+    p.add_argument("--translate-model", help="model for the English track (default: medium when the main model is turbo)")
+    p.add_argument("--burn-track", choices=("ar", "en", "both"), default="ar", help="which subtitles to burn (default: ar)")
     p.add_argument("--doctor", action="store_true", help="check GPU, CUDA libraries and ffmpeg, then exit")
     p.add_argument("-q", "--quiet", action="store_true", help="no progress bar")
     p.add_argument("-v", "--verbose", action="store_true", help="debug logging")
@@ -154,6 +158,13 @@ def main(argv: list[str] | None = None) -> int:
     if not input_path.is_file():
         print(f"arsub: error: no such file: {input_path}", file=sys.stderr)
         return 2
+    if args.translate and args.subs:
+        print("arsub: error: --translate needs the audio, it cannot be used with --subs", file=sys.stderr)
+        return 2
+    if args.burn_track != "ar" and not args.translate:
+        print("arsub: error: --burn-track en/both needs --translate", file=sys.stderr)
+        return 2
+
     from .pipeline import run
 
     topts = TranscribeOptions(
@@ -187,7 +198,10 @@ def main(argv: list[str] | None = None) -> int:
             formats=parse_formats(args.format),
             transcribe_opts=topts,
             build_opts=bopts,
+            translate=args.translate,
+            translate_model=args.translate_model,
             burn=args.burn,
+            burn_track=args.burn_track,
             subs_path=args.subs,
             style=style,
             rtl_marks=args.rtl_marks,
