@@ -157,7 +157,7 @@ def build_command(
         cmd += ["-f", "lavfi", "-i", f"color=c={background}:s={w}x{h}:r=25", "-i", input_path]
         wave_h = h // 4
         graph = (
-            f"[1:a]aformat=channel_layouts=mono,showwaves=s={w}x{wave_h}:mode=cline:rate=25:colors=0x4fb3bf[w];"
+            f"[1:a]aformat=channel_layouts=mono,showwaves=s={w}x{wave_h}:mode=cline:rate=25:scale=sqrt:colors=0x4fb3bf[w];"
             f"[0:v][w]overlay=0:{(h - wave_h) // 2 - h // 10}:shortest=1,{subs}[v]"
         )
         cmd += ["-filter_complex", graph, "-map", "[v]", "-map", "1:a", "-shortest"]

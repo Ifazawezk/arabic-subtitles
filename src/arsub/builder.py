@@ -89,8 +89,8 @@ def is_dangling(word: str) -> bool:
         return True
     return len(w) > 2 and w[0] in "وف" and w[1:] in DANGLING
 
-# Phrases Whisper is known to invent on silence or music in Arabic audio,
-# usually copied from subtitle credits in its training data.
+# Phrases Whisper writes on silence or music in Arabic audio. They look like
+# subtitle credits, and nobody in the recording says them.
 HALLUCINATIONS = (
     "ترجمة نانسي قنقر",
     "نانسي قنقر",

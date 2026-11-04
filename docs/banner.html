@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>arsub banner</title>
+<style>
+  @font-face { font-family: "Noto Sans Arabic"; src: url("../src/arsub/fonts/NotoSansArabic-Bold.ttf"); font-weight: 700; }
+  @font-face { font-family: "Noto Sans Arabic"; src: url("../src/arsub/fonts/NotoSansArabic-Regular.ttf"); font-weight: 400; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1280px; height: 420px; overflow: hidden; background: #0d1416; }
+  .frame {
+    position: relative; width: 1280px; height: 420px; overflow: hidden;
+    background:
+      radial-gradient(760px 420px at 96% 0%, rgba(79, 179, 191, .22), transparent 70%),
+      radial-gradient(620px 380px at 0% 100%, rgba(226, 181, 94, .10), transparent 70%),
+      #0d1416;
+    font-family: "Segoe UI", system-ui, sans-serif; color: #eef4f3;
+  }
+  .left { position: absolute; left: 64px; top: 72px; width: 520px; }
+  .mark { font-size: 104px; font-weight: 700; letter-spacing: -4px; line-height: 1; }
+  .mark span { color: #4fb3bf; }
+  .tag { margin-top: 22px; font-size: 29px; font-weight: 600; line-height: 1.25; }
+  .sub { margin-top: 12px; font-size: 19px; color: #9db2b0; }
+  .card {
+    position: absolute; right: 64px; top: 58px; width: 590px; height: 304px; border-radius: 16px;
+    background: linear-gradient(160deg, #18242a, #101a1e); border: 1px solid rgba(255, 255, 255, .08);
+    box-shadow: 0 24px 60px rgba(0, 0, 0, .45); overflow: hidden;
+  }
+  .bars { position: absolute; left: 38px; right: 38px; top: 30px; height: 112px; display: flex; align-items: center; gap: 5px; }
+  .bars i { flex: 1; border-radius: 3px; background: #4fb3bf; opacity: .8; }
+  .sub-line {
+    position: absolute; left: 0; right: 0; bottom: 34px; text-align: center; direction: rtl;
+    font-family: "Noto Sans Arabic", sans-serif; font-weight: 700; font-size: 37px; line-height: 1.32;
+    color: #fff; text-shadow: 0 0 3px #000, 0 2px 4px #000, 0 0 2px #000;
+  }
+</style>
+</head>
+<body>
+<div class="frame">
+  <div class="left">
+    <div class="mark">ar<span>sub</span></div>
+    <div class="tag">Arabic subtitles that<br>render the right way.</div>
+    <div class="sub">Offline, on your own GPU or CPU.</div>
+  </div>
+  <div class="card">
+    <div class="bars" id="bars"></div>
+    <div class="sub-line">ترجمة عربية على جهازك،<br>من اليمين إلى اليسار.</div>
+  </div>
+</div>
+<script>
+  // A fixed speech-like envelope, so the banner renders the same every time.
+  var bars = document.getElementById("bars");
+  for (var i = 0; i < 58; i++) {
+    var v = Math.abs(Math.sin(i * 0.37) * Math.cos(i * 0.113) + 0.35 * Math.sin(i * 1.9));
+    var el = document.createElement("i");
+    el.style.height = Math.round(10 + v * 86) + "%";
+    bars.appendChild(el);
+  }
+</script>
+</body>
+</html>
