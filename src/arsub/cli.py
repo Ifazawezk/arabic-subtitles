@@ -148,7 +148,8 @@ def doctor() -> int:
 
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
-    logging.basicConfig(level=logging.DEBUG if args.verbose else logging.INFO, format="arsub: %(message)s")
+    logging.basicConfig(level=logging.WARNING, format="arsub: %(message)s")
+    log.setLevel(logging.DEBUG if args.verbose else logging.WARNING if args.quiet else logging.INFO)
     if args.doctor:
         return doctor()
     if not args.input:

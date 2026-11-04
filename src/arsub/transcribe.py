@@ -143,6 +143,15 @@ def resolve_compute_type(compute_type: str, device: str) -> str:
 _MODEL_CACHE: dict[tuple, object] = {}
 
 
+def _not_cached_errors() -> tuple[type[BaseException], ...]:
+    try:
+        from huggingface_hub.errors import LocalEntryNotFoundError
+
+        return (LocalEntryNotFoundError,)
+    except ImportError:  # very old huggingface_hub
+        return (FileNotFoundError,)
+
+
 def load_model(name: str, device: str, compute_type: str, download_root: str | None = None):
     """Load (and cache) a ``faster_whisper.WhisperModel``."""
     key = (name, device, compute_type, download_root)
@@ -151,7 +160,13 @@ def load_model(name: str, device: str, compute_type: str, download_root: str | N
         from faster_whisper import WhisperModel
 
         log.info("loading model %s on %s (%s)", name, device, compute_type)
-        _MODEL_CACHE[key] = WhisperModel(name, device=device, compute_type=compute_type, download_root=download_root)
+        common = dict(device=device, compute_type=compute_type, download_root=download_root)
+        try:
+            # Local copy first: once a model is cached, no request leaves the machine.
+            _MODEL_CACHE[key] = WhisperModel(name, local_files_only=True, **common)
+        except _not_cached_errors():
+            log.info("model %s is not on this machine yet, downloading it once", name)
+            _MODEL_CACHE[key] = WhisperModel(name, **common)
     return _MODEL_CACHE[key]
 
 

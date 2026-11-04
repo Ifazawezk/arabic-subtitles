@@ -5,6 +5,7 @@ import types
 from types import SimpleNamespace
 
 import pytest
+from huggingface_hub.errors import LocalEntryNotFoundError
 
 from arsub import transcribe as tr
 from arsub.dialects import DIALECTS, prompt_for
@@ -13,9 +14,13 @@ from arsub.dialects import DIALECTS, prompt_for
 class FakeModel:
     instances: list = []
     fail_on_cuda = False
+    not_cached: set = set()
 
-    def __init__(self, name, device, compute_type, download_root=None):
+    def __init__(self, name, device, compute_type, download_root=None, local_files_only=False):
+        if local_files_only and name in FakeModel.not_cached:
+            raise LocalEntryNotFoundError("not in cache")
         self.name, self.device, self.compute_type = name, device, compute_type
+        self.local_files_only = local_files_only
         self.calls = []
         FakeModel.instances.append(self)
 
@@ -35,6 +40,7 @@ class FakeModel:
 def fake_whisper(monkeypatch):
     FakeModel.instances = []
     FakeModel.fail_on_cuda = False
+    FakeModel.not_cached = set()
     module = types.ModuleType("faster_whisper")
     module.WhisperModel = FakeModel
     monkeypatch.setitem(sys.modules, "faster_whisper", module)
@@ -99,6 +105,17 @@ def test_models_are_cached():
 def test_vad_keeps_short_pauses():
     # 500 ms lost words on narration over music, see the comment in TranscribeOptions.
     assert tr.TranscribeOptions().min_silence_ms == 2000
+
+
+def test_cached_model_never_touches_the_network():
+    tr.transcribe("a.wav", tr.TranscribeOptions(device="cpu", model="tiny"))
+    assert FakeModel.instances[0].local_files_only is True
+
+
+def test_missing_model_is_downloaded_once():
+    FakeModel.not_cached = {"tiny"}
+    tr.transcribe("a.wav", tr.TranscribeOptions(device="cpu", model="tiny"))
+    assert [m.local_files_only for m in FakeModel.instances] == [False]
 
 
 def test_dialect_prompt_and_translate_task():
